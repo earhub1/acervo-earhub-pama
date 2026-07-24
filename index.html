@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acervo Acustico — Margem Equatorial</title>
+<style>
+  :root{
+    --paper:#e6ebee; --paper2:#f3f6f7; --card:#fbfcfc;
+    --ink:#14232c; --ink2:#516670; --ink3:#8399a3;
+    --rule:#c0ccd3; --rule2:#dbe4e8;
+    --mag:#a8005c; --coast:#1b7837; --ocean:#14556e;
+    --p1:#cbdde4; --p2:#abc9d4; --p3:#8ab4c5; --p4:#6aa0b6;
+    --p5:#4b8ba6; --p6:#2f7492; --p7:#1b5d7a; --p8:#0e4661;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:var(--paper); color:var(--ink);
+    font:13px/1.5 ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    padding-bottom:70px; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 18px;}
+
+  /* ---- cabecalho de estacao ---- */
+  header{border-bottom:2px solid var(--ink);background:var(--paper2);padding:20px 0 12px;}
+  .brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;}
+  h1{font-size:15px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;}
+  .brand .loc{font-size:11px;letter-spacing:.16em;color:var(--mag);text-transform:uppercase;}
+  .meta{margin-top:9px;display:flex;gap:22px;flex-wrap:wrap;font-size:11px;color:var(--ink2);letter-spacing:.04em;}
+  .meta b{color:var(--ink);font-weight:600;}
+
+  /* ---- controles ---- */
+  .panel{border-bottom:1px solid var(--rule);background:var(--paper2);padding:12px 0;position:sticky;top:0;z-index:20;}
+  .ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .ctl + .ctl{margin-top:8px;}
+  .lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-right:2px;}
+  select,input,button{
+    font:12px/1 inherit;font-family:inherit;color:var(--ink);
+    background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:7px 9px;
+  }
+  select:focus,input:focus,button:focus-visible{outline:2px solid var(--mag);outline-offset:1px;border-color:var(--mag);}
+  input[type=text]{flex:1;min-width:180px;}
+  input[type=date]{font-variant-numeric:tabular-nums;}
+  button{cursor:pointer;letter-spacing:.06em;text-transform:uppercase;font-size:10.5px;padding:8px 11px;}
+  button:hover{background:var(--ink);color:var(--paper2);border-color:var(--ink);}
+  button.on{background:var(--mag);border-color:var(--mag);color:#fff;}
+
+  /* ---- leitura de instrumento ---- */
+  .readout{display:flex;flex-wrap:wrap;border:1px solid var(--rule);border-radius:2px;
+    background:var(--card);margin:16px 0 0;}
+  .rd{padding:11px 16px;border-right:1px solid var(--rule2);flex:1;min-width:112px;}
+  .rd:last-child{border-right:0;}
+  .rd .v{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+  .rd .k{font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink3);margin-top:3px;}
+
+  /* ---- localizacao (resposta) ---- */
+  .answer{margin-top:14px;border:1px solid var(--mag);border-left-width:4px;border-radius:2px;background:var(--card);}
+  .answer .hd{padding:9px 14px 0;font-size:9.5px;letter-spacing:.17em;text-transform:uppercase;color:var(--mag);}
+  .answer .bd{padding:7px 14px 13px;}
+  .answer .q{font-size:12px;color:var(--ink2);margin-bottom:8px;}
+  .chip{display:inline-block;border:1px solid var(--rule);background:var(--paper2);border-radius:2px;
+    padding:4px 9px;margin:3px 5px 0 0;font-size:12px;}
+  .chip b{font-weight:600;}
+  .chip i{font-style:normal;color:var(--ink3);}
+  .nada{color:var(--mag);font-size:12px;}
+  .locrow{display:flex;justify-content:space-between;gap:14px;align-items:baseline;
+    padding:6px 0;border-bottom:1px dotted var(--rule2);}
+  .locrow:last-child{border-bottom:0;}
+  .locrow b{font-size:14px;font-weight:600;letter-spacing:.02em;}
+  .locrow span{font-variant-numeric:tabular-nums;color:var(--ink2);font-size:12.5px;}
+
+  /* dica no estado inicial */
+  .dica{margin-top:14px;border:1px dashed var(--rule);border-radius:2px;background:var(--card);
+    padding:13px 15px;font-size:12px;color:var(--ink2);line-height:1.65;}
+  .dica b{color:var(--ink);font-weight:600;}
+  .dica kbd{font:inherit;background:var(--paper2);border:1px solid var(--rule);border-radius:2px;padding:1px 5px;}
+
+  /* chips de filtros ativos */
+  .ativos{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:9px;}
+  .ativos .t{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);}
+  .fchip{display:inline-flex;align-items:center;gap:7px;background:var(--ink);color:var(--paper2);
+    border-radius:2px;padding:4px 6px 4px 9px;font-size:11px;letter-spacing:.03em;}
+  .fchip button{background:none;border:0;color:inherit;padding:0 2px;font-size:13px;line-height:1;
+    cursor:pointer;opacity:.72;text-transform:none;letter-spacing:0;}
+  .fchip button:hover{opacity:1;background:none;color:inherit;}
+
+  /* tooltip da regua (funciona no toque) */
+  #tip{position:fixed;z-index:60;display:none;max-width:270px;background:var(--ink);color:var(--paper2);
+    border-radius:2px;padding:9px 11px;font-size:11.5px;line-height:1.6;box-shadow:0 3px 14px #14232c33;}
+  #tip .h{color:#fff;font-weight:600;letter-spacing:.05em;}
+  #tip .d{color:#ffffffb0;font-variant-numeric:tabular-nums;}
+  .seg.sel{outline:1.5px solid var(--ink);z-index:4;}
+
+  /* ---- regua de cobertura (assinatura) ---- */
+  .tl{margin-top:22px;border:1px solid var(--rule);border-radius:2px;background:var(--card);overflow:hidden;}
+  .tl-hd{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;
+    border-bottom:1px solid var(--rule);background:var(--paper2);}
+  .tl-hd h2{font-size:10px;letter-spacing:.17em;text-transform:uppercase;font-weight:600;}
+  .legend{display:flex;gap:9px;flex-wrap:wrap;font-size:9.5px;color:var(--ink2);align-items:center;}
+  .legend i{display:inline-block;width:10px;height:10px;border:1px solid #0003;vertical-align:-1px;margin-right:3px;}
+  .tl-body{padding:6px 14px 14px;}
+  .axis{position:relative;height:15px;margin-left:52px;border-bottom:1px solid var(--rule);}
+  .axis span{position:absolute;top:1px;font-size:9.5px;color:var(--ink3);transform:translateX(-50%);white-space:nowrap;}
+  .axis span::after{content:"";position:absolute;left:50%;top:13px;width:1px;height:5px;background:var(--rule);}
+  .trow{display:flex;align-items:center;margin-top:5px;}
+  .tlabel{width:52px;flex:none;font-size:11px;font-weight:600;letter-spacing:.04em;}
+  .tlabel u{text-decoration:none;display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:5px;vertical-align:1px;}
+  .track{position:relative;flex:1;height:17px;background:repeating-linear-gradient(90deg,var(--rule2) 0 1px,transparent 1px 100%);
+    background-size:calc(100%/8) 100%;border-radius:1px;}
+  .seg{position:absolute;top:0;height:17px;min-width:2px;border-radius:1px;}
+  .seg:hover{outline:1.5px solid var(--ink);z-index:3;}
+
+  /* ---- linhas de detalhe ---- */
+  .rows{margin-top:22px;border:1px solid var(--rule);border-radius:2px;background:var(--card);}
+  .rhd{display:grid;grid-template-columns:44px 1fr 92px 66px 108px 96px;gap:12px;padding:8px 14px;
+    border-bottom:1px solid var(--rule);background:var(--paper2);
+    font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);}
+  .r{display:grid;grid-template-columns:44px 1fr 92px 66px 108px 96px;gap:12px;padding:9px 14px;
+    border-bottom:1px solid var(--rule2);align-items:center;}
+  .r:last-child{border-bottom:0;}
+  .r:hover{background:var(--paper2);}
+  .r .fu{font-weight:700;}
+  .r .fu u{text-decoration:none;display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:5px;vertical-align:1px;}
+  .r .ds{font-weight:600;}
+  .r .sm{color:var(--ink2);font-size:11.5px;}
+  .r .num{text-align:right;font-variant-numeric:tabular-nums;}
+  .pbox{display:inline-block;min-width:20px;text-align:center;border-radius:2px;padding:1px 5px;
+    font-size:10.5px;font-weight:600;color:#fff;}
+  .grp{padding:10px 14px 8px;border-bottom:1px solid var(--rule);background:var(--paper2);
+    font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);}
+  .grp b{color:var(--ink);}
+  .vazio{padding:40px 14px;text-align:center;color:var(--ink3);font-size:12px;}
+  footer{margin-top:26px;padding-top:12px;border-top:1px solid var(--rule);
+    font-size:10.5px;color:var(--ink3);line-height:1.8;}
+
+  @media (max-width:720px){
+    .rhd{display:none;}
+    .r{grid-template-columns:1fr auto;gap:4px 10px;padding:11px 14px;}
+    .r .pe{grid-column:2;grid-row:1;justify-self:end;}
+    .r .sm,.r .num{grid-column:1/-1;text-align:left;}
+    .tlabel{width:auto;font-size:10.5px;margin-bottom:3px;}
+    .axis{margin-left:0;}
+    .trow{display:block;margin-top:11px;}
+    .track{height:24px;}
+    .seg{height:24px;min-width:4px;}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+</head>
+<body>
+
+<header><div class="wrap">
+  <div class="brand">
+    <h1>Acervo Acustico</h1>
+    <span class="loc">Margem Equatorial &middot; Bacia da Foz do Amazonas</span>
+  </div>
+  <div class="meta">
+    <span>Monitoramento acustico passivo</span>
+    <span>Fundeios <b>F1&ndash;F6</b></span>
+    <span>Cobertura <b id="mCob">&mdash;</b></span>
+    <span>Atualizado <b>24/07/2026 19:08</b></span>
+  </div>
+</div></header>
+
+<div class="panel"><div class="wrap">
+  <div class="ctl">
+    <span class="lbl">Intervalo</span>
+    <input type="date" id="dIni" aria-label="Data inicial">
+    <span class="lbl">ate</span>
+    <input type="date" id="dFim" aria-label="Data final">
+    <button id="btAno">Ano cheio</button>
+    <button id="btLimparData">Limpar datas</button>
+  </div>
+  <div class="ctl">
+    <select id="fFundeio" aria-label="Fundeio"><option value="">Fundeio: todos</option></select>
+    <select id="fPeriodo" aria-label="Periodo do servidor"><option value="">Periodo: todos</option></select>
+    <select id="fSsd" aria-label="Disco"><option value="">Disco: todos</option></select>
+    <select id="fTaxa" aria-label="Taxa amostral"><option value="">Taxa: todas</option></select>
+    <input type="text" id="fBusca" placeholder="buscar: PAMA12 / F4 / 2025-12 / periodo7" aria-label="Busca livre">
+    <button id="btAgrupar">Por disco</button>
+    <button id="btLimparTudo">Limpar</button>
+  </div>
+  <div class="ativos" id="ativos"></div>
+</div></div>
+
+<div class="wrap">
+  <div id="answer"></div>
+  <div id="tip" role="status" aria-live="polite"></div>
+  <div class="readout" id="readout"></div>
+
+  <section class="tl">
+    <div class="tl-hd">
+      <h2>Regua de cobertura</h2>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="tl-body">
+      <div class="axis" id="axis"></div>
+      <div id="tracks"></div>
+    </div>
+  </section>
+
+  <section class="rows">
+    <div class="rhd">
+      <span>Fund</span><span>Disco</span><span>Mes</span><span>Per</span><span>Dias</span><span class="num">Volume</span>
+    </div>
+    <div id="rows"></div>
+  </section>
+
+  <footer>
+    Cada linha resume um bloco: fundeio &times; disco &times; periodo &times; mes &times; taxa amostral.
+    A busca por intervalo retorna todo bloco com qualquer dia dentro das datas informadas.<br>
+    Consulta apenas &mdash; a fonte dos dados e o catalogo mestre. Detalhe arquivo a arquivo: consultar o catalogo completo.
+  </footer>
+</div>
+
+<script>
+const DADOS = [{"fundeio": "F1", "ssd": "EAR_SENT_02", "periodo": 8, "ano_mes": 202601, "taxa": 8, "n": 595, "gb": 7.96, "dia_min": 20260123, "dia_max": 20260131}, {"fundeio": "F1", "ssd": "EAR_SENT_02", "periodo": 8, "ano_mes": 202601, "taxa": 128, "n": 595, "gb": 127.4, "dia_min": 20260123, "dia_max": 20260131}, {"fundeio": "F1", "ssd": "EAR_SENT_02", "periodo": 8, "ano_mes": 202602, "taxa": 8, "n": 2014, "gb": 26.99, "dia_min": 20260201, "dia_max": 20260228}, {"fundeio": "F1", "ssd": "EAR_SENT_02", "periodo": 8, "ano_mes": 202602, "taxa": 128, "n": 2016, "gb": 432.13, "dia_min": 20260201, "dia_max": 20260228}, {"fundeio": "F1", "ssd": "EAR_SENT_02", "periodo": 8, "ano_mes": 202603, "taxa": 8, "n": 438, "gb": 5.87, "dia_min": 20260301, "dia_max": 20260307}, {"fundeio": "F1", "ssd": "EAR_SENT_02", "periodo": 8, "ano_mes": 202603, "taxa": 128, "n": 439, "gb": 94.14, "dia_min": 20260301, "dia_max": 20260307}, {"fundeio": "F1", "ssd": "PAMA01", "periodo": 8, "ano_mes": 202603, "taxa": 8, "n": 1010, "gb": 13.54, "dia_min": 20260307, "dia_max": 20260321}, {"fundeio": "F1", "ssd": "PAMA01", "periodo": 8, "ano_mes": 202603, "taxa": 128, "n": 1012, "gb": 216.78, "dia_min": 20260307, "dia_max": 20260321}, {"fundeio": "F1", "ssd": "PAMA01", "periodo": 8, "ano_mes": 202603, "taxa": null, "n": 125, "gb": 0.0, "dia_min": 20260316, "dia_max": 20260321}, {"fundeio": "F1", "ssd": "PAMA06", "periodo": 6, "ano_mes": 202509, "taxa": 128, "n": 2160, "gb": 463.26, "dia_min": 20250901, "dia_max": 20250930}, {"fundeio": "F1", "ssd": "PAMA06", "periodo": 6, "ano_mes": 202510, "taxa": 128, "n": 2232, "gb": 478.7, "dia_min": 20251001, "dia_max": 20251031}, {"fundeio": "F1", "ssd": "PAMA06", "periodo": 6, "ano_mes": 202511, "taxa": 128, "n": 2160, "gb": 463.25, "dia_min": 20251101, "dia_max": 20251130}, {"fundeio": "F1", "ssd": "PAMA06", "periodo": 6, "ano_mes": 202512, "taxa": 128, "n": 126, "gb": 27.02, "dia_min": 20251201, "dia_max": 20251202}, {"fundeio": "F1", "ssd": "PAMA07", "periodo": 1, "ano_mes": 202404, "taxa": 32, "n": 348, "gb": 38.23, "dia_min": 20240416, "dia_max": 20240430}, {"fundeio": "F1", "ssd": "PAMA07", "periodo": 1, "ano_mes": 202405, "taxa": 32, "n": 744, "gb": 81.74, "dia_min": 20240501, "dia_max": 20240531}, {"fundeio": "F1", "ssd": "PAMA07", "periodo": 1, "ano_mes": 202406, "taxa": 32, "n": 720, "gb": 79.1, "dia_min": 20240601, "dia_max": 20240630}, {"fundeio": "F1", "ssd": "PAMA07", "periodo": 1, "ano_mes": 202407, "taxa": 32, "n": 744, "gb": 81.74, "dia_min": 20240701, "dia_max": 20240731}, {"fundeio": "F1", "ssd": "PAMA07", "periodo": 1, "ano_mes": 202408, "taxa": 32, "n": 703, "gb": 77.23, "dia_min": 20240801, "dia_max": 20240830}, {"fundeio": "F1", "ssd": "PAMA07", "periodo": 5, "ano_mes": 202506, "taxa": 128, "n": 1458, "gb": 312.68, "dia_min": 20250610, "dia_max": 20250630}, {"fundeio": "F1", "ssd": "PAMA07", "periodo": 5, "ano_mes": 202507, "taxa": 128, "n": 2232, "gb": 478.68, "dia_min": 20250701, "dia_max": 20250731}, {"fundeio": "F1", "ssd": "PAMA07", "periodo": 5, "ano_mes": 202508, "taxa": 128, "n": 491, "gb": 105.24, "dia_min": 20250801, "dia_max": 20250807}, {"fundeio": "F1", "ssd": "PAMA07", "periodo": 6, "ano_mes": 202508, "taxa": 128, "n": 1609, "gb": 344.87, "dia_min": 20250809, "dia_max": 20250831}, {"fundeio": "F2", "ssd": "PAMA05", "periodo": 1, "ano_mes": 202404, "taxa": 32, "n": 348, "gb": 38.23, "dia_min": 20240416, "dia_max": 20240430}, {"fundeio": "F2", "ssd": "PAMA05", "periodo": 1, "ano_mes": 202405, "taxa": 32, "n": 744, "gb": 81.74, "dia_min": 20240501, "dia_max": 20240531}, {"fundeio": "F2", "ssd": "PAMA05", "periodo": 1, "ano_mes": 202406, "taxa": 32, "n": 720, "gb": 79.1, "dia_min": 20240601, "dia_max": 20240630}, {"fundeio": "F2", "ssd": "PAMA05", "periodo": 1, "ano_mes": 202407, "taxa": 32, "n": 744, "gb": 81.74, "dia_min": 20240701, "dia_max": 20240731}, {"fundeio": "F2", "ssd": "PAMA05", "periodo": 1, "ano_mes": 202408, "taxa": 32, "n": 671, "gb": 73.72, "dia_min": 20240801, "dia_max": 20240828}, {"fundeio": "F2", "ssd": "PAMA05", "periodo": 3, "ano_mes": 202411, "taxa": 32, "n": 3, "gb": 0.33, "dia_min": 20241107, "dia_max": 20241107}, {"fundeio": "F2", "ssd": "PAMA05", "periodo": 4, "ano_mes": 202501, "taxa": 32, "n": 198, "gb": 21.75, "dia_min": 20250123, "dia_max": 20250131}, {"fundeio": "F2", "ssd": "PAMA05", "periodo": 4, "ano_mes": 202502, "taxa": 32, "n": 233, "gb": 25.6, "dia_min": 20250201, "dia_max": 20250212}, {"fundeio": "F2", "ssd": "PAMA05", "periodo": 4, "ano_mes": 202505, "taxa": 32, "n": 37, "gb": 4.06, "dia_min": 20250502, "dia_max": 20250507}, {"fundeio": "F2", "ssd": "PAMA05", "periodo": 6, "ano_mes": 202508, "taxa": 128, "n": 2232, "gb": 478.67, "dia_min": 20250801, "dia_max": 20250831}, {"fundeio": "F2", "ssd": "PAMA05", "periodo": 6, "ano_mes": 202509, "taxa": 128, "n": 2160, "gb": 463.23, "dia_min": 20250901, "dia_max": 20250930}, {"fundeio": "F2", "ssd": "PAMA05", "periodo": 6, "ano_mes": 202510, "taxa": 128, "n": 2232, "gb": 478.67, "dia_min": 20251001, "dia_max": 20251031}, {"fundeio": "F2", "ssd": "PAMA08", "periodo": 5, "ano_mes": 202506, "taxa": 128, "n": 1857, "gb": 398.25, "dia_min": 20250605, "dia_max": 20250630}, {"fundeio": "F2", "ssd": "PAMA08", "periodo": 5, "ano_mes": 202507, "taxa": 128, "n": 2160, "gb": 463.23, "dia_min": 20250701, "dia_max": 20250730}, {"fundeio": "F2", "ssd": "PAMA08", "periodo": 6, "ano_mes": 202507, "taxa": 128, "n": 63, "gb": 13.51, "dia_min": 20250731, "dia_max": 20250731}, {"fundeio": "F2", "ssd": "PAMA08", "periodo": 6, "ano_mes": 202511, "taxa": 128, "n": 1944, "gb": 416.91, "dia_min": 20251101, "dia_max": 20251127}, {"fundeio": "F2", "ssd": "PAMA08", "periodo": 7, "ano_mes": 202511, "taxa": 128, "n": 205, "gb": 43.96, "dia_min": 20251128, "dia_max": 20251130}, {"fundeio": "F2", "ssd": "PAMA08", "periodo": 7, "ano_mes": 202601, "taxa": 8, "n": 231, "gb": 3.1, "dia_min": 20260101, "dia_max": 20260104}, {"fundeio": "F2", "ssd": "PAMA09", "periodo": 7, "ano_mes": 202601, "taxa": 128, "n": 1929, "gb": 413.69, "dia_min": 20260101, "dia_max": 20260127}, {"fundeio": "F2", "ssd": "PAMA10", "periodo": 7, "ano_mes": 202511, "taxa": 8, "n": 165, "gb": 2.21, "dia_min": 20251128, "dia_max": 20251130}, {"fundeio": "F2", "ssd": "PAMA10", "periodo": 7, "ano_mes": 202512, "taxa": 8, "n": 2232, "gb": 29.91, "dia_min": 20251201, "dia_max": 20251231}, {"fundeio": "F2", "ssd": "PAMA10", "periodo": 7, "ano_mes": 202512, "taxa": 128, "n": 2232, "gb": 478.67, "dia_min": 20251201, "dia_max": 20251231}, {"fundeio": "F2", "ssd": "PAMA10", "periodo": 7, "ano_mes": 202601, "taxa": 8, "n": 1648, "gb": 22.09, "dia_min": 20260104, "dia_max": 20260127}, {"fundeio": "F3", "ssd": "LECA_03", "periodo": 6, "ano_mes": 202511, "taxa": 128, "n": 412, "gb": 88.37, "dia_min": 20251121, "dia_max": 20251126}, {"fundeio": "F3", "ssd": "PAMA01", "periodo": null, "ano_mes": null, "taxa": 32, "n": 135, "gb": 19.78, "dia_min": null, "dia_max": null}, {"fundeio": "F3", "ssd": "PAMA07", "periodo": 5, "ano_mes": 202507, "taxa": 128, "n": 544, "gb": 116.68, "dia_min": 20250722, "dia_max": 20250729}, {"fundeio": "F3", "ssd": "PAMA07", "periodo": 6, "ano_mes": 202507, "taxa": 128, "n": 36, "gb": 7.72, "dia_min": 20250730, "dia_max": 20250730}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 1, "ano_mes": 202404, "taxa": 32, "n": 170, "gb": 24.9, "dia_min": 20240416, "dia_max": 20240430}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 1, "ano_mes": 202405, "taxa": 32, "n": 372, "gb": 54.49, "dia_min": 20240501, "dia_max": 20240531}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 1, "ano_mes": 202406, "taxa": 32, "n": 360, "gb": 52.73, "dia_min": 20240601, "dia_max": 20240630}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 1, "ano_mes": 202407, "taxa": 32, "n": 372, "gb": 54.49, "dia_min": 20240701, "dia_max": 20240731}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 1, "ano_mes": 202408, "taxa": 32, "n": 372, "gb": 54.49, "dia_min": 20240801, "dia_max": 20240831}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 1, "ano_mes": 202409, "taxa": 32, "n": 21, "gb": 3.08, "dia_min": 20240901, "dia_max": 20240902}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 3, "ano_mes": 202411, "taxa": 32, "n": 482, "gb": 52.95, "dia_min": 20241110, "dia_max": 20241130}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 3, "ano_mes": 202412, "taxa": 32, "n": 744, "gb": 81.74, "dia_min": 20241201, "dia_max": 20241231}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 3, "ano_mes": 202501, "taxa": 32, "n": 552, "gb": 60.64, "dia_min": 20250101, "dia_max": 20250123}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 4, "ano_mes": 202501, "taxa": 32, "n": 189, "gb": 20.76, "dia_min": 20250124, "dia_max": 20250131}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 4, "ano_mes": 202502, "taxa": 32, "n": 512, "gb": 56.25, "dia_min": 20250201, "dia_max": 20250228}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 4, "ano_mes": 202503, "taxa": 32, "n": 728, "gb": 79.98, "dia_min": 20250301, "dia_max": 20250331}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 4, "ano_mes": 202504, "taxa": 32, "n": 120, "gb": 13.18, "dia_min": 20250401, "dia_max": 20250405}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 5, "ano_mes": 202506, "taxa": 128, "n": 2046, "gb": 438.84, "dia_min": 20250602, "dia_max": 20250630}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": 5, "ano_mes": 202507, "taxa": 128, "n": 1544, "gb": 331.17, "dia_min": 20250701, "dia_max": 20250722}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": null, "ano_mes": 202504, "taxa": 32, "n": 485, "gb": 53.26, "dia_min": 20250406, "dia_max": 20250430}, {"fundeio": "F3", "ssd": "PAMA09", "periodo": null, "ano_mes": 202505, "taxa": 32, "n": 73, "gb": 8.02, "dia_min": 20250502, "dia_max": 20250511}, {"fundeio": "F3", "ssd": "PAMA10", "periodo": 6, "ano_mes": 202507, "taxa": 8, "n": 102, "gb": 1.37, "dia_min": 20250730, "dia_max": 20250731}, {"fundeio": "F3", "ssd": "PAMA10", "periodo": 6, "ano_mes": 202507, "taxa": 128, "n": 102, "gb": 21.72, "dia_min": 20250730, "dia_max": 20250731}, {"fundeio": "F3", "ssd": "PAMA10", "periodo": 6, "ano_mes": 202508, "taxa": 8, "n": 2232, "gb": 29.92, "dia_min": 20250801, "dia_max": 20250831}, {"fundeio": "F3", "ssd": "PAMA10", "periodo": 6, "ano_mes": 202509, "taxa": 8, "n": 2160, "gb": 28.95, "dia_min": 20250901, "dia_max": 20250930}, {"fundeio": "F3", "ssd": "PAMA10", "periodo": 6, "ano_mes": 202510, "taxa": 8, "n": 2232, "gb": 29.92, "dia_min": 20251001, "dia_max": 20251031}, {"fundeio": "F3", "ssd": "PAMA10", "periodo": 8, "ano_mes": 202601, "taxa": 8, "n": 235, "gb": 3.14, "dia_min": 20260128, "dia_max": 20260131}, {"fundeio": "F3", "ssd": "PAMA10", "periodo": 8, "ano_mes": 202602, "taxa": 8, "n": 1686, "gb": 22.6, "dia_min": 20260201, "dia_max": 20260224}, {"fundeio": "F3", "ssd": "PAMA10", "periodo": null, "ano_mes": null, "taxa": 8, "n": 39, "gb": 0.52, "dia_min": null, "dia_max": null}, {"fundeio": "F3", "ssd": "PAMA11", "periodo": 6, "ano_mes": 202511, "taxa": 128, "n": 1448, "gb": 309.76, "dia_min": 20251101, "dia_max": 20251126}, {"fundeio": "F3", "ssd": "PAMA11", "periodo": 7, "ano_mes": 202511, "taxa": 8, "n": 240, "gb": 3.22, "dia_min": 20251127, "dia_max": 20251130}, {"fundeio": "F3", "ssd": "PAMA11", "periodo": 7, "ano_mes": 202511, "taxa": 128, "n": 240, "gb": 51.11, "dia_min": 20251127, "dia_max": 20251130}, {"fundeio": "F3", "ssd": "PAMA11", "periodo": 7, "ano_mes": 202512, "taxa": 8, "n": 2232, "gb": 29.92, "dia_min": 20251201, "dia_max": 20251231}, {"fundeio": "F3", "ssd": "PAMA11", "periodo": 7, "ano_mes": 202512, "taxa": 128, "n": 2231, "gb": 477.69, "dia_min": 20251201, "dia_max": 20251231}, {"fundeio": "F3", "ssd": "PAMA11", "periodo": 7, "ano_mes": 202512, "taxa": null, "n": 1, "gb": 0.0, "dia_min": 20251204, "dia_max": 20251204}, {"fundeio": "F3", "ssd": "PAMA11", "periodo": 7, "ano_mes": 202601, "taxa": 8, "n": 1944, "gb": 26.06, "dia_min": 20260101, "dia_max": 20260127}, {"fundeio": "F3", "ssd": "PAMA11", "periodo": 7, "ano_mes": 202601, "taxa": 128, "n": 1944, "gb": 369.92, "dia_min": 20260101, "dia_max": 20260127}, {"fundeio": "F3", "ssd": "PAMA11", "periodo": 8, "ano_mes": 202601, "taxa": 8, "n": 48, "gb": 0.64, "dia_min": 20260128, "dia_max": 20260128}, {"fundeio": "F3", "ssd": "PAMA11", "periodo": 8, "ano_mes": 202601, "taxa": 128, "n": 283, "gb": 60.48, "dia_min": 20260128, "dia_max": 20260131}, {"fundeio": "F3", "ssd": "PAMA16", "periodo": 6, "ano_mes": 202508, "taxa": 128, "n": 2232, "gb": 478.06, "dia_min": 20250801, "dia_max": 20250831}, {"fundeio": "F3", "ssd": "PAMA16", "periodo": 6, "ano_mes": 202509, "taxa": 128, "n": 2160, "gb": 462.53, "dia_min": 20250901, "dia_max": 20250930}, {"fundeio": "F3", "ssd": "PAMA16", "periodo": 6, "ano_mes": 202510, "taxa": 128, "n": 2232, "gb": 478.31, "dia_min": 20251001, "dia_max": 20251031}, {"fundeio": "F3", "ssd": "PAMA16", "periodo": 8, "ano_mes": 202602, "taxa": 128, "n": 1687, "gb": 361.2, "dia_min": 20260201, "dia_max": 20260224}, {"fundeio": "F3", "ssd": "PAMA16", "periodo": null, "ano_mes": null, "taxa": 128, "n": 40, "gb": 8.58, "dia_min": null, "dia_max": null}, {"fundeio": "F4", "ssd": "EAR_SENT_05", "periodo": 7, "ano_mes": 202601, "taxa": 8, "n": 1694, "gb": 22.71, "dia_min": 20260101, "dia_max": 20260124}, {"fundeio": "F4", "ssd": "EAR_SENT_05", "periodo": 7, "ano_mes": 202601, "taxa": 128, "n": 1694, "gb": 362.74, "dia_min": 20260101, "dia_max": 20260124}, {"fundeio": "F4", "ssd": "EAR_SENT_05", "periodo": 8, "ano_mes": 202601, "taxa": 8, "n": 478, "gb": 6.4, "dia_min": 20260125, "dia_max": 20260131}, {"fundeio": "F4", "ssd": "EAR_SENT_05", "periodo": 8, "ano_mes": 202601, "taxa": 128, "n": 478, "gb": 102.16, "dia_min": 20260125, "dia_max": 20260131}, {"fundeio": "F4", "ssd": "EAR_SENT_05", "periodo": 8, "ano_mes": 202602, "taxa": 8, "n": 2016, "gb": 27.03, "dia_min": 20260201, "dia_max": 20260228}, {"fundeio": "F4", "ssd": "EAR_SENT_05", "periodo": 8, "ano_mes": 202602, "taxa": 128, "n": 2016, "gb": 432.49, "dia_min": 20260201, "dia_max": 20260228}, {"fundeio": "F4", "ssd": "EAR_SENT_05", "periodo": 8, "ano_mes": 202603, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20260301, "dia_max": 20260331}, {"fundeio": "F4", "ssd": "EAR_SENT_05", "periodo": 8, "ano_mes": 202603, "taxa": 128, "n": 2232, "gb": 478.94, "dia_min": 20260301, "dia_max": 20260331}, {"fundeio": "F4", "ssd": "EAR_SENT_05", "periodo": 8, "ano_mes": 202604, "taxa": 8, "n": 1652, "gb": 22.15, "dia_min": 20260401, "dia_max": 20260423}, {"fundeio": "F4", "ssd": "EAR_SENT_05", "periodo": 8, "ano_mes": 202604, "taxa": 128, "n": 1656, "gb": 354.37, "dia_min": 20260401, "dia_max": 20260423}, {"fundeio": "F4", "ssd": "EAR_SENT_05", "periodo": null, "ano_mes": 202604, "taxa": 8, "n": 39, "gb": 0.52, "dia_min": 20260424, "dia_max": 20260424}, {"fundeio": "F4", "ssd": "EAR_SENT_05", "periodo": null, "ano_mes": 202604, "taxa": 128, "n": 39, "gb": 8.25, "dia_min": 20260424, "dia_max": 20260424}, {"fundeio": "F4", "ssd": "LECA_03", "periodo": 8, "ano_mes": 202601, "taxa": 128, "n": 7, "gb": 1.21, "dia_min": 20260125, "dia_max": 20260125}, {"fundeio": "F4", "ssd": "PAMA01", "periodo": 1, "ano_mes": 202405, "taxa": 8, "n": 87, "gb": 1.16, "dia_min": 20240509, "dia_max": 20240510}, {"fundeio": "F4", "ssd": "PAMA01", "periodo": 1, "ano_mes": 202407, "taxa": 8, "n": 9, "gb": 0.12, "dia_min": 20240702, "dia_max": 20240702}, {"fundeio": "F4", "ssd": "PAMA01", "periodo": 2, "ano_mes": 202408, "taxa": 8, "n": 1, "gb": 0.01, "dia_min": 20240806, "dia_max": 20240806}, {"fundeio": "F4", "ssd": "PAMA01", "periodo": 2, "ano_mes": 202409, "taxa": 8, "n": 72, "gb": 0.96, "dia_min": 20240901, "dia_max": 20240901}, {"fundeio": "F4", "ssd": "PAMA01", "periodo": 3, "ano_mes": 202412, "taxa": 8, "n": 4, "gb": 0.0, "dia_min": 20241219, "dia_max": 20241219}, {"fundeio": "F4", "ssd": "PAMA01", "periodo": 4, "ano_mes": 202504, "taxa": 8, "n": 505, "gb": 6.77, "dia_min": 20250420, "dia_max": 20250427}, {"fundeio": "F4", "ssd": "PAMA01", "periodo": 4, "ano_mes": 202505, "taxa": 8, "n": 144, "gb": 1.93, "dia_min": 20250518, "dia_max": 20250518}, {"fundeio": "F4", "ssd": "PAMA01", "periodo": null, "ano_mes": null, "taxa": 8, "n": 4, "gb": 0.05, "dia_min": null, "dia_max": null}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 1, "ano_mes": 202404, "taxa": 8, "n": 1254, "gb": 16.76, "dia_min": 20240413, "dia_max": 20240430}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 1, "ano_mes": 202405, "taxa": 8, "n": 2232, "gb": 29.85, "dia_min": 20240501, "dia_max": 20240531}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 1, "ano_mes": 202406, "taxa": 8, "n": 2160, "gb": 28.88, "dia_min": 20240601, "dia_max": 20240630}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 1, "ano_mes": 202407, "taxa": 8, "n": 432, "gb": 5.78, "dia_min": 20240701, "dia_max": 20240706}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 2, "ano_mes": 202407, "taxa": 8, "n": 1800, "gb": 24.0, "dia_min": 20240707, "dia_max": 20240731}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 2, "ano_mes": 202408, "taxa": 8, "n": 2232, "gb": 29.84, "dia_min": 20240801, "dia_max": 20240831}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 2, "ano_mes": 202409, "taxa": 8, "n": 2160, "gb": 28.88, "dia_min": 20240901, "dia_max": 20240930}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 2, "ano_mes": 202410, "taxa": 8, "n": 2232, "gb": 29.85, "dia_min": 20241001, "dia_max": 20241031}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 2, "ano_mes": 202411, "taxa": 8, "n": 2091, "gb": 27.91, "dia_min": 20241101, "dia_max": 20241130}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 2, "ano_mes": 202412, "taxa": 8, "n": 1292, "gb": 17.27, "dia_min": 20241201, "dia_max": 20241218}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 3, "ano_mes": 202411, "taxa": 8, "n": 1959, "gb": 26.25, "dia_min": 20241103, "dia_max": 20241130}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 3, "ano_mes": 202412, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20241201, "dia_max": 20241231}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 3, "ano_mes": 202501, "taxa": 8, "n": 2048, "gb": 27.46, "dia_min": 20250101, "dia_max": 20250129}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 4, "ano_mes": 202501, "taxa": 8, "n": 93, "gb": 1.25, "dia_min": 20250130, "dia_max": 20250131}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 4, "ano_mes": 202502, "taxa": 8, "n": 2016, "gb": 27.03, "dia_min": 20250201, "dia_max": 20250228}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 4, "ano_mes": 202503, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20250301, "dia_max": 20250331}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 4, "ano_mes": 202504, "taxa": 8, "n": 2160, "gb": 28.96, "dia_min": 20250401, "dia_max": 20250430}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 4, "ano_mes": 202505, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20250501, "dia_max": 20250531}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 4, "ano_mes": 202506, "taxa": 8, "n": 612, "gb": 8.21, "dia_min": 20250601, "dia_max": 20250609}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 5, "ano_mes": 202506, "taxa": 8, "n": 1485, "gb": 19.91, "dia_min": 20250610, "dia_max": 20250630}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 5, "ano_mes": 202507, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20250701, "dia_max": 20250731}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 5, "ano_mes": 202508, "taxa": 8, "n": 399, "gb": 5.35, "dia_min": 20250801, "dia_max": 20250806}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 6, "ano_mes": 202508, "taxa": 8, "n": 1776, "gb": 23.81, "dia_min": 20250807, "dia_max": 20250831}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 6, "ano_mes": 202509, "taxa": 8, "n": 2160, "gb": 28.96, "dia_min": 20250901, "dia_max": 20250930}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": 6, "ano_mes": 202510, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20251001, "dia_max": 20251031}, {"fundeio": "F4", "ssd": "PAMA03", "periodo": null, "ano_mes": null, "taxa": 8, "n": 1, "gb": 0.01, "dia_min": null, "dia_max": null}, {"fundeio": "F4", "ssd": "PAMA04", "periodo": 2, "ano_mes": 202411, "taxa": 128, "n": 2091, "gb": 446.47, "dia_min": 20241101, "dia_max": 20241130}, {"fundeio": "F4", "ssd": "PAMA04", "periodo": 2, "ano_mes": 202412, "taxa": 128, "n": 720, "gb": 154.07, "dia_min": 20241201, "dia_max": 20241210}, {"fundeio": "F4", "ssd": "PAMA12", "periodo": 2, "ano_mes": 202408, "taxa": 128, "n": 1440, "gb": 308.13, "dia_min": 20240812, "dia_max": 20240831}, {"fundeio": "F4", "ssd": "PAMA12", "periodo": 2, "ano_mes": 202409, "taxa": 128, "n": 2160, "gb": 462.2, "dia_min": 20240901, "dia_max": 20240930}, {"fundeio": "F4", "ssd": "PAMA12", "periodo": 2, "ano_mes": 202410, "taxa": 128, "n": 2232, "gb": 477.6, "dia_min": 20241001, "dia_max": 20241031}, {"fundeio": "F4", "ssd": "PAMA12", "periodo": 6, "ano_mes": 202512, "taxa": 8, "n": 39, "gb": 0.52, "dia_min": 20251201, "dia_max": 20251201}, {"fundeio": "F4", "ssd": "PAMA12", "periodo": 6, "ano_mes": 202512, "taxa": 128, "n": 39, "gb": 8.29, "dia_min": 20251201, "dia_max": 20251201}, {"fundeio": "F4", "ssd": "PAMA12", "periodo": 7, "ano_mes": 202512, "taxa": 8, "n": 3672, "gb": 49.06, "dia_min": 20251202, "dia_max": 20251231}, {"fundeio": "F4", "ssd": "PAMA12", "periodo": 7, "ano_mes": 202512, "taxa": 128, "n": 3371, "gb": 721.34, "dia_min": 20251202, "dia_max": 20251231}, {"fundeio": "F4", "ssd": "PAMA12", "periodo": 7, "ano_mes": 202512, "taxa": null, "n": 334, "gb": 0.0, "dia_min": 20251220, "dia_max": 20251226}, {"fundeio": "F4", "ssd": "PAMA12", "periodo": null, "ano_mes": null, "taxa": 128, "n": 231, "gb": 0.02, "dia_min": null, "dia_max": null}, {"fundeio": "F4", "ssd": "PAMA12", "periodo": null, "ano_mes": null, "taxa": null, "n": 1133, "gb": 0.0, "dia_min": null, "dia_max": null}, {"fundeio": "F4", "ssd": "PAMA13", "periodo": 4, "ano_mes": 202505, "taxa": 128, "n": 2232, "gb": 478.94, "dia_min": 20250501, "dia_max": 20250531}, {"fundeio": "F4", "ssd": "PAMA13", "periodo": 4, "ano_mes": 202506, "taxa": 128, "n": 612, "gb": 131.32, "dia_min": 20250601, "dia_max": 20250609}, {"fundeio": "F4", "ssd": "PAMA13", "periodo": 5, "ano_mes": 202506, "taxa": 128, "n": 1485, "gb": 318.65, "dia_min": 20250610, "dia_max": 20250630}, {"fundeio": "F4", "ssd": "PAMA13", "periodo": 5, "ano_mes": 202507, "taxa": 128, "n": 2232, "gb": 478.94, "dia_min": 20250701, "dia_max": 20250731}, {"fundeio": "F4", "ssd": "PAMA14", "periodo": 2, "ano_mes": 202412, "taxa": 128, "n": 572, "gb": 122.29, "dia_min": 20241211, "dia_max": 20241218}, {"fundeio": "F4", "ssd": "PAMA14", "periodo": 3, "ano_mes": 202411, "taxa": 128, "n": 1034, "gb": 221.67, "dia_min": 20241103, "dia_max": 20241118}, {"fundeio": "F4", "ssd": "PAMA14", "periodo": 4, "ano_mes": 202501, "taxa": 128, "n": 93, "gb": 19.96, "dia_min": 20250130, "dia_max": 20250131}, {"fundeio": "F4", "ssd": "PAMA14", "periodo": 4, "ano_mes": 202502, "taxa": 128, "n": 2016, "gb": 432.59, "dia_min": 20250201, "dia_max": 20250228}, {"fundeio": "F4", "ssd": "PAMA14", "periodo": 4, "ano_mes": 202503, "taxa": 128, "n": 2232, "gb": 478.94, "dia_min": 20250301, "dia_max": 20250331}, {"fundeio": "F4", "ssd": "PAMA14", "periodo": 4, "ano_mes": 202504, "taxa": 128, "n": 2160, "gb": 463.49, "dia_min": 20250401, "dia_max": 20250430}, {"fundeio": "F4", "ssd": "PAMA14", "periodo": 4, "ano_mes": 202504, "taxa": null, "n": 1, "gb": 0.21, "dia_min": 20250424, "dia_max": 20250424}, {"fundeio": "F4", "ssd": "PAMA15", "periodo": 1, "ano_mes": 202404, "taxa": 128, "n": 1254, "gb": 268.15, "dia_min": 20240413, "dia_max": 20240430}, {"fundeio": "F4", "ssd": "PAMA15", "periodo": 1, "ano_mes": 202405, "taxa": 128, "n": 2232, "gb": 477.6, "dia_min": 20240501, "dia_max": 20240531}, {"fundeio": "F4", "ssd": "PAMA15", "periodo": 1, "ano_mes": 202406, "taxa": 128, "n": 2160, "gb": 462.2, "dia_min": 20240601, "dia_max": 20240630}, {"fundeio": "F4", "ssd": "PAMA15", "periodo": 1, "ano_mes": 202407, "taxa": 128, "n": 432, "gb": 92.44, "dia_min": 20240701, "dia_max": 20240706}, {"fundeio": "F4", "ssd": "PAMA15", "periodo": 2, "ano_mes": 202407, "taxa": 128, "n": 1800, "gb": 384.06, "dia_min": 20240707, "dia_max": 20240731}, {"fundeio": "F4", "ssd": "PAMA15", "periodo": 2, "ano_mes": 202408, "taxa": 128, "n": 792, "gb": 169.33, "dia_min": 20240801, "dia_max": 20240811}, {"fundeio": "F4", "ssd": "PAMA15", "periodo": null, "ano_mes": null, "taxa": 128, "n": 1, "gb": 0.21, "dia_min": null, "dia_max": null}, {"fundeio": "F4", "ssd": "PAMA17", "periodo": 5, "ano_mes": 202508, "taxa": 128, "n": 10, "gb": 2.15, "dia_min": 20250806, "dia_max": 20250806}, {"fundeio": "F4", "ssd": "PAMA17", "periodo": 6, "ano_mes": 202508, "taxa": 128, "n": 1776, "gb": 381.09, "dia_min": 20250807, "dia_max": 20250831}, {"fundeio": "F4", "ssd": "PAMA17", "periodo": 6, "ano_mes": 202509, "taxa": 128, "n": 2160, "gb": 463.49, "dia_min": 20250901, "dia_max": 20250930}, {"fundeio": "F4", "ssd": "PAMA17", "periodo": 6, "ano_mes": 202510, "taxa": 128, "n": 2232, "gb": 478.94, "dia_min": 20251001, "dia_max": 20251031}, {"fundeio": "F4", "ssd": "PAMA17", "periodo": 6, "ano_mes": 202511, "taxa": 8, "n": 2160, "gb": 28.96, "dia_min": 20251101, "dia_max": 20251130}, {"fundeio": "F4", "ssd": "PAMA17", "periodo": 6, "ano_mes": 202511, "taxa": 128, "n": 2160, "gb": 463.49, "dia_min": 20251101, "dia_max": 20251130}, {"fundeio": "F4", "ssd": "PAMA17", "periodo": null, "ano_mes": null, "taxa": 128, "n": 389, "gb": 83.47, "dia_min": null, "dia_max": null}, {"fundeio": "F5", "ssd": "EAR_SENT_02", "periodo": 7, "ano_mes": 202511, "taxa": 8, "n": 43, "gb": 0.56, "dia_min": 20251130, "dia_max": 20251130}, {"fundeio": "F5", "ssd": "EAR_SENT_02", "periodo": 7, "ano_mes": 202511, "taxa": 128, "n": 43, "gb": 9.01, "dia_min": 20251130, "dia_max": 20251130}, {"fundeio": "F5", "ssd": "EAR_SENT_02", "periodo": 7, "ano_mes": 202512, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20251201, "dia_max": 20251231}, {"fundeio": "F5", "ssd": "EAR_SENT_02", "periodo": 7, "ano_mes": 202512, "taxa": 128, "n": 2174, "gb": 465.22, "dia_min": 20251201, "dia_max": 20251231}, {"fundeio": "F5", "ssd": "EAR_SENT_02", "periodo": 7, "ano_mes": 202512, "taxa": null, "n": 58, "gb": 0.0, "dia_min": 20251229, "dia_max": 20251229}, {"fundeio": "F5", "ssd": "EAR_SENT_03", "periodo": 7, "ano_mes": 202601, "taxa": 8, "n": 1839, "gb": 24.66, "dia_min": 20260101, "dia_max": 20260126}, {"fundeio": "F5", "ssd": "EAR_SENT_03", "periodo": 7, "ano_mes": 202601, "taxa": 128, "n": 1839, "gb": 393.59, "dia_min": 20260101, "dia_max": 20260126}, {"fundeio": "F5", "ssd": "EAR_SENT_03", "periodo": 8, "ano_mes": 202601, "taxa": 8, "n": 300, "gb": 4.01, "dia_min": 20260127, "dia_max": 20260131}, {"fundeio": "F5", "ssd": "EAR_SENT_03", "periodo": 8, "ano_mes": 202601, "taxa": 128, "n": 301, "gb": 64.2, "dia_min": 20260127, "dia_max": 20260131}, {"fundeio": "F5", "ssd": "EAR_SENT_03", "periodo": 8, "ano_mes": 202602, "taxa": 8, "n": 2016, "gb": 27.03, "dia_min": 20260201, "dia_max": 20260228}, {"fundeio": "F5", "ssd": "EAR_SENT_03", "periodo": 8, "ano_mes": 202602, "taxa": 128, "n": 2016, "gb": 432.59, "dia_min": 20260201, "dia_max": 20260228}, {"fundeio": "F5", "ssd": "PAMA17", "periodo": 6, "ano_mes": 202509, "taxa": 8, "n": 2160, "gb": 28.96, "dia_min": 20250901, "dia_max": 20250930}, {"fundeio": "F5", "ssd": "PAMA17", "periodo": 6, "ano_mes": 202510, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20251001, "dia_max": 20251031}, {"fundeio": "F5", "ssd": "PAMA17", "periodo": 6, "ano_mes": 202511, "taxa": 8, "n": 2057, "gb": 27.58, "dia_min": 20251101, "dia_max": 20251129}, {"fundeio": "F5", "ssd": "PAMA17", "periodo": 8, "ano_mes": 202603, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20260301, "dia_max": 20260331}, {"fundeio": "F5", "ssd": "PAMA17", "periodo": 8, "ano_mes": 202603, "taxa": 128, "n": 2232, "gb": 478.94, "dia_min": 20260301, "dia_max": 20260331}, {"fundeio": "F5", "ssd": "PAMA17", "periodo": 8, "ano_mes": 202604, "taxa": 8, "n": 1567, "gb": 21.0, "dia_min": 20260401, "dia_max": 20260422}, {"fundeio": "F5", "ssd": "PAMA17", "periodo": 8, "ano_mes": 202604, "taxa": 128, "n": 1567, "gb": 336.03, "dia_min": 20260401, "dia_max": 20260422}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 1, "ano_mes": 202404, "taxa": 8, "n": 1335, "gb": 17.8, "dia_min": 20240407, "dia_max": 20240430}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 1, "ano_mes": 202404, "taxa": 128, "n": 1335, "gb": 284.89, "dia_min": 20240407, "dia_max": 20240430}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 1, "ano_mes": 202405, "taxa": 8, "n": 700, "gb": 9.36, "dia_min": 20240501, "dia_max": 20240510}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 1, "ano_mes": 202405, "taxa": 128, "n": 700, "gb": 149.72, "dia_min": 20240501, "dia_max": 20240510}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 2, "ano_mes": 202407, "taxa": 8, "n": 904, "gb": 12.05, "dia_min": 20240717, "dia_max": 20240731}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 2, "ano_mes": 202407, "taxa": 128, "n": 904, "gb": 192.8, "dia_min": 20240717, "dia_max": 20240731}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 2, "ano_mes": 202408, "taxa": 8, "n": 2232, "gb": 29.9, "dia_min": 20240801, "dia_max": 20240831}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 2, "ano_mes": 202408, "taxa": 128, "n": 2232, "gb": 478.41, "dia_min": 20240801, "dia_max": 20240831}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 2, "ano_mes": 202409, "taxa": 8, "n": 2160, "gb": 28.93, "dia_min": 20240901, "dia_max": 20240930}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 2, "ano_mes": 202409, "taxa": 128, "n": 2160, "gb": 462.97, "dia_min": 20240901, "dia_max": 20240930}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 2, "ano_mes": 202410, "taxa": 8, "n": 2232, "gb": 29.9, "dia_min": 20241001, "dia_max": 20241031}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 2, "ano_mes": 202410, "taxa": 128, "n": 2232, "gb": 478.4, "dia_min": 20241001, "dia_max": 20241031}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 2, "ano_mes": 202411, "taxa": 8, "n": 420, "gb": 5.63, "dia_min": 20241101, "dia_max": 20241106}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 2, "ano_mes": 202411, "taxa": 128, "n": 420, "gb": 90.02, "dia_min": 20241101, "dia_max": 20241106}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 3, "ano_mes": 202411, "taxa": 8, "n": 1742, "gb": 23.36, "dia_min": 20241106, "dia_max": 20241130}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 3, "ano_mes": 202411, "taxa": 128, "n": 1742, "gb": 373.79, "dia_min": 20241106, "dia_max": 20241130}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 3, "ano_mes": 202412, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20241201, "dia_max": 20241231}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 3, "ano_mes": 202412, "taxa": 128, "n": 2232, "gb": 478.94, "dia_min": 20241201, "dia_max": 20241231}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 3, "ano_mes": 202501, "taxa": 8, "n": 1906, "gb": 25.55, "dia_min": 20250101, "dia_max": 20250127}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 3, "ano_mes": 202501, "taxa": 128, "n": 1906, "gb": 408.87, "dia_min": 20250101, "dia_max": 20250127}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 4, "ano_mes": 202501, "taxa": 8, "n": 253, "gb": 3.38, "dia_min": 20250128, "dia_max": 20250131}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": 4, "ano_mes": 202501, "taxa": 128, "n": 253, "gb": 54.08, "dia_min": 20250128, "dia_max": 20250131}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": null, "ano_mes": null, "taxa": 8, "n": 46, "gb": 0.62, "dia_min": null, "dia_max": null}, {"fundeio": "F5", "ssd": "PAMA18", "periodo": null, "ano_mes": null, "taxa": 128, "n": 46, "gb": 9.87, "dia_min": null, "dia_max": null}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 4, "ano_mes": 202502, "taxa": 8, "n": 2016, "gb": 27.03, "dia_min": 20250201, "dia_max": 20250228}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 4, "ano_mes": 202502, "taxa": 128, "n": 2016, "gb": 432.59, "dia_min": 20250201, "dia_max": 20250228}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 4, "ano_mes": 202503, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20250301, "dia_max": 20250331}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 4, "ano_mes": 202503, "taxa": 128, "n": 2232, "gb": 478.94, "dia_min": 20250301, "dia_max": 20250331}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 4, "ano_mes": 202504, "taxa": 8, "n": 2160, "gb": 28.96, "dia_min": 20250401, "dia_max": 20250430}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 4, "ano_mes": 202504, "taxa": 128, "n": 2160, "gb": 463.49, "dia_min": 20250401, "dia_max": 20250430}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 4, "ano_mes": 202505, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20250501, "dia_max": 20250531}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 4, "ano_mes": 202505, "taxa": 128, "n": 2232, "gb": 478.94, "dia_min": 20250501, "dia_max": 20250531}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 4, "ano_mes": 202506, "taxa": 8, "n": 396, "gb": 5.31, "dia_min": 20250601, "dia_max": 20250606}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 4, "ano_mes": 202506, "taxa": 128, "n": 396, "gb": 84.97, "dia_min": 20250601, "dia_max": 20250606}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 5, "ano_mes": 202506, "taxa": 8, "n": 1632, "gb": 21.88, "dia_min": 20250607, "dia_max": 20250630}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 5, "ano_mes": 202506, "taxa": 128, "n": 1632, "gb": 350.19, "dia_min": 20250607, "dia_max": 20250630}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 5, "ano_mes": 202507, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20250701, "dia_max": 20250731}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 5, "ano_mes": 202507, "taxa": 128, "n": 2232, "gb": 478.94, "dia_min": 20250701, "dia_max": 20250731}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 5, "ano_mes": 202508, "taxa": 8, "n": 258, "gb": 3.46, "dia_min": 20250801, "dia_max": 20250804}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 5, "ano_mes": 202508, "taxa": 128, "n": 258, "gb": 55.36, "dia_min": 20250801, "dia_max": 20250804}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 6, "ano_mes": 202508, "taxa": 8, "n": 1916, "gb": 25.68, "dia_min": 20250805, "dia_max": 20250831}, {"fundeio": "F5", "ssd": "PAMA19", "periodo": 6, "ano_mes": 202508, "taxa": 128, "n": 1916, "gb": 410.94, "dia_min": 20250805, "dia_max": 20250831}, {"fundeio": "F5", "ssd": "PAMA22", "periodo": 6, "ano_mes": 202509, "taxa": 128, "n": 2160, "gb": 463.49, "dia_min": 20250901, "dia_max": 20250930}, {"fundeio": "F5", "ssd": "PAMA22", "periodo": 6, "ano_mes": 202510, "taxa": 128, "n": 2232, "gb": 478.94, "dia_min": 20251001, "dia_max": 20251031}, {"fundeio": "F5", "ssd": "PAMA22", "periodo": 6, "ano_mes": 202511, "taxa": 128, "n": 2057, "gb": 441.38, "dia_min": 20251101, "dia_max": 20251129}, {"fundeio": "F6", "ssd": "LECA_03", "periodo": 8, "ano_mes": 202601, "taxa": 8, "n": 109, "gb": 1.45, "dia_min": 20260130, "dia_max": 20260131}, {"fundeio": "F6", "ssd": "LECA_03", "periodo": 8, "ano_mes": 202601, "taxa": 128, "n": 109, "gb": 23.18, "dia_min": 20260130, "dia_max": 20260131}, {"fundeio": "F6", "ssd": "LECA_03", "periodo": 8, "ano_mes": 202602, "taxa": 8, "n": 720, "gb": 9.65, "dia_min": 20260201, "dia_max": 20260210}, {"fundeio": "F6", "ssd": "LECA_03", "periodo": 8, "ano_mes": 202602, "taxa": 128, "n": 720, "gb": 154.5, "dia_min": 20260201, "dia_max": 20260210}, {"fundeio": "F6", "ssd": "PAMA01", "periodo": 2, "ano_mes": 202409, "taxa": 8, "n": 72, "gb": 0.96, "dia_min": 20240901, "dia_max": 20240901}, {"fundeio": "F6", "ssd": "PAMA03", "periodo": 1, "ano_mes": 202404, "taxa": 8, "n": 1363, "gb": 18.23, "dia_min": 20240412, "dia_max": 20240430}, {"fundeio": "F6", "ssd": "PAMA03", "periodo": 1, "ano_mes": 202405, "taxa": 8, "n": 1092, "gb": 14.6, "dia_min": 20240501, "dia_max": 20240516}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 2, "ano_mes": 202411, "taxa": 8, "n": 632, "gb": 8.45, "dia_min": 20241101, "dia_max": 20241109}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 3, "ano_mes": 202411, "taxa": 8, "n": 847, "gb": 10.38, "dia_min": 20241109, "dia_max": 20241120}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 3, "ano_mes": 202412, "taxa": 8, "n": 1969, "gb": 26.4, "dia_min": 20241204, "dia_max": 20241231}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 3, "ano_mes": 202501, "taxa": 8, "n": 1705, "gb": 22.86, "dia_min": 20250101, "dia_max": 20250125}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 4, "ano_mes": 202501, "taxa": 8, "n": 391, "gb": 5.23, "dia_min": 20250126, "dia_max": 20250131}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 4, "ano_mes": 202502, "taxa": 8, "n": 2016, "gb": 27.03, "dia_min": 20250201, "dia_max": 20250228}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 4, "ano_mes": 202503, "taxa": 8, "n": 2232, "gb": 29.92, "dia_min": 20250301, "dia_max": 20250331}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 4, "ano_mes": 202504, "taxa": 8, "n": 2160, "gb": 28.96, "dia_min": 20250401, "dia_max": 20250430}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 4, "ano_mes": 202505, "taxa": 8, "n": 2214, "gb": 29.65, "dia_min": 20250501, "dia_max": 20250531}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 5, "ano_mes": 202506, "taxa": 8, "n": 2123, "gb": 28.47, "dia_min": 20250601, "dia_max": 20250630}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 5, "ano_mes": 202507, "taxa": 8, "n": 1985, "gb": 26.61, "dia_min": 20250701, "dia_max": 20250728}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 6, "ano_mes": 202507, "taxa": 8, "n": 171, "gb": 2.29, "dia_min": 20250729, "dia_max": 20250731}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 6, "ano_mes": 202508, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20250801, "dia_max": 20250831}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 6, "ano_mes": 202509, "taxa": 8, "n": 2160, "gb": 28.96, "dia_min": 20250901, "dia_max": 20250930}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 6, "ano_mes": 202510, "taxa": 8, "n": 2232, "gb": 29.93, "dia_min": 20251001, "dia_max": 20251031}, {"fundeio": "F6", "ssd": "PAMA04", "periodo": 6, "ano_mes": 202511, "taxa": 8, "n": 1764, "gb": 23.64, "dia_min": 20251101, "dia_max": 20251125}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 1, "ano_mes": 202404, "taxa": 8, "n": 1394, "gb": 18.58, "dia_min": 20240407, "dia_max": 20240430}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 1, "ano_mes": 202404, "taxa": 64, "n": 1, "gb": 0.0, "dia_min": 20240407, "dia_max": 20240407}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 1, "ano_mes": 202404, "taxa": 128, "n": 1393, "gb": 297.27, "dia_min": 20240407, "dia_max": 20240430}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 1, "ano_mes": 202405, "taxa": 8, "n": 2232, "gb": 29.85, "dia_min": 20240501, "dia_max": 20240531}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 1, "ano_mes": 202405, "taxa": 128, "n": 2232, "gb": 477.6, "dia_min": 20240501, "dia_max": 20240531}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 1, "ano_mes": 202406, "taxa": 8, "n": 2160, "gb": 28.88, "dia_min": 20240601, "dia_max": 20240630}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 1, "ano_mes": 202406, "taxa": 128, "n": 2160, "gb": 462.19, "dia_min": 20240601, "dia_max": 20240630}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 1, "ano_mes": 202407, "taxa": 8, "n": 766, "gb": 10.23, "dia_min": 20240701, "dia_max": 20240712}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 1, "ano_mes": 202407, "taxa": 128, "n": 766, "gb": 163.7, "dia_min": 20240701, "dia_max": 20240712}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 2, "ano_mes": 202407, "taxa": 8, "n": 1264, "gb": 16.87, "dia_min": 20240713, "dia_max": 20240731}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 2, "ano_mes": 202407, "taxa": 128, "n": 1264, "gb": 269.87, "dia_min": 20240713, "dia_max": 20240731}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 2, "ano_mes": 202408, "taxa": 8, "n": 2232, "gb": 29.85, "dia_min": 20240801, "dia_max": 20240831}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 2, "ano_mes": 202408, "taxa": 128, "n": 2232, "gb": 477.6, "dia_min": 20240801, "dia_max": 20240831}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 2, "ano_mes": 202409, "taxa": 8, "n": 2160, "gb": 28.88, "dia_min": 20240901, "dia_max": 20240930}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 2, "ano_mes": 202409, "taxa": 128, "n": 2160, "gb": 462.2, "dia_min": 20240901, "dia_max": 20240930}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 2, "ano_mes": 202410, "taxa": 8, "n": 2232, "gb": 29.85, "dia_min": 20241001, "dia_max": 20241031}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 2, "ano_mes": 202410, "taxa": 128, "n": 2232, "gb": 477.6, "dia_min": 20241001, "dia_max": 20241031}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 2, "ano_mes": 202411, "taxa": 128, "n": 632, "gb": 135.24, "dia_min": 20241101, "dia_max": 20241109}, {"fundeio": "F6", "ssd": "PAMA20", "periodo": 3, "ano_mes": 202411, "taxa": 128, "n": 847, "gb": 166.16, "dia_min": 20241109, "dia_max": 20241120}, {"fundeio": "F6", "ssd": "PAMA21", "periodo": 3, "ano_mes": 202412, "taxa": 128, "n": 1969, "gb": 422.5, "dia_min": 20241204, "dia_max": 20241231}, {"fundeio": "F6", "ssd": "PAMA21", "periodo": 3, "ano_mes": 202501, "taxa": 128, "n": 1705, "gb": 365.85, "dia_min": 20250101, "dia_max": 20250125}, {"fundeio": "F6", "ssd": "PAMA21", "periodo": 4, "ano_mes": 202501, "taxa": 128, "n": 391, "gb": 83.69, "dia_min": 20250126, "dia_max": 20250131}, {"fundeio": "F6", "ssd": "PAMA21", "periodo": 4, "ano_mes": 202502, "taxa": 128, "n": 2016, "gb": 432.59, "dia_min": 20250201, "dia_max": 20250228}, {"fundeio": "F6", "ssd": "PAMA21", "periodo": 4, "ano_mes": 202503, "taxa": 128, "n": 2232, "gb": 478.8, "dia_min": 20250301, "dia_max": 20250331}, {"fundeio": "F6", "ssd": "PAMA21", "periodo": 4, "ano_mes": 202504, "taxa": 128, "n": 2160, "gb": 463.49, "dia_min": 20250401, "dia_max": 20250430}, {"fundeio": "F6", "ssd": "PAMA21", "periodo": 4, "ano_mes": 202505, "taxa": 128, "n": 2214, "gb": 474.45, "dia_min": 20250501, "dia_max": 20250531}, {"fundeio": "F6", "ssd": "PAMA21", "periodo": 5, "ano_mes": 202506, "taxa": 128, "n": 2123, "gb": 455.55, "dia_min": 20250601, "dia_max": 20250630}, {"fundeio": "F6", "ssd": "PAMA21", "periodo": 5, "ano_mes": 202507, "taxa": 128, "n": 1540, "gb": 330.45, "dia_min": 20250701, "dia_max": 20250722}, {"fundeio": "F6", "ssd": "PAMA22", "periodo": 6, "ano_mes": 202507, "taxa": 128, "n": 171, "gb": 36.69, "dia_min": 20250729, "dia_max": 20250731}, {"fundeio": "F6", "ssd": "PAMA22", "periodo": 6, "ano_mes": 202508, "taxa": 128, "n": 2232, "gb": 478.94, "dia_min": 20250801, "dia_max": 20250831}, {"fundeio": "F6", "ssd": "PAMA22", "periodo": 6, "ano_mes": 202509, "taxa": 128, "n": 2160, "gb": 463.49, "dia_min": 20250901, "dia_max": 20250930}, {"fundeio": "F6", "ssd": "PAMA22", "periodo": 6, "ano_mes": 202510, "taxa": 128, "n": 2232, "gb": 478.94, "dia_min": 20251001, "dia_max": 20251031}, {"fundeio": "F6", "ssd": "PAMA22", "periodo": 6, "ano_mes": 202511, "taxa": 128, "n": 1764, "gb": 378.37, "dia_min": 20251101, "dia_max": 20251125}];
+const COBERTURA = {"min": 20240407, "max": 20260424};
+
+const MES=["","jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const fmtMes=(a)=>{if(!a)return"sem data";const s=String(a);return MES[+s.slice(4,6)]+"/"+s.slice(0,4);};
+const fmtDia=(d)=>{if(!d)return"";const s=String(d);return s.slice(6,8)+"."+s.slice(4,6)+"."+s.slice(0,4);};
+const isoNum=(v)=>v?+v.replaceAll("-",""):null;
+const numIso=(n)=>{const s=String(n);return s.slice(0,4)+"-"+s.slice(4,6)+"-"+s.slice(6,8);};
+const dnum=(n)=>{const s=String(n);return Date.UTC(+s.slice(0,4),+s.slice(4,6)-1,+s.slice(6,8));};
+const corP=(p)=>p?getComputedStyle(document.documentElement).getPropertyValue('--p'+p).trim():'var(--mag)';
+const COSTEIRO=new Set(['F1','F2','F3']);
+const corF=(f)=>COSTEIRO.has(f)?'var(--coast)':'var(--ocean)';
+
+const MESLONGO=["","janeiro","fevereiro","marco março","abril","maio","junho",
+  "julho","agosto","setembro","outubro","novembro","dezembro"];
+const semAcento=(s)=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+function feno(d){
+  if(d._h!==undefined)return d._h;
+  const m=d.ano_mes?String(d.ano_mes):"", mm=m?+m.slice(4,6):0, yy=m?m.slice(0,4):"";
+  const p=[d.fundeio,d.ssd,m,yy,yy.slice(2),
+    mm?MES[mm]:"",mm?MESLONGO[mm]:"",m?yy+"-"+m.slice(4,6):"",
+    d.taxa?d.taxa+"khz "+d.taxa+"k "+d.taxa:"",
+    d.periodo?"p"+d.periodo+" periodo"+d.periodo+" periodo "+d.periodo:""];
+  d._h=semAcento(p.join(" "));
+  return d._h;
+}
+
+const el=(i)=>document.getElementById(i);
+const dIni=el('dIni'),dFim=el('dFim'),selF=el('fFundeio'),selP=el('fPeriodo'),
+      selS=el('fSsd'),selT=el('fTaxa'),inB=el('fBusca'),btAgr=el('btAgrupar');
+let agrupado=false;
+
+el('mCob').textContent=fmtDia(COBERTURA.min)+" \u2192 "+fmtDia(COBERTURA.max);
+dIni.min=dFim.min=numIso(COBERTURA.min);
+dIni.max=dFim.max=numIso(COBERTURA.max);
+
+[...new Set(DADOS.map(d=>d.fundeio))].sort().forEach(f=>selF.innerHTML+=`<option>${f}</option>`);
+[...new Set(DADOS.map(d=>d.periodo).filter(Boolean))].sort((a,b)=>a-b)
+  .forEach(p=>selP.innerHTML+=`<option value="${p}">Periodo ${p}</option>`);
+[...new Set(DADOS.map(d=>d.ssd))].sort().forEach(s=>selS.innerHTML+=`<option>${s}</option>`);
+[...new Set(DADOS.map(d=>d.taxa).filter(Boolean))].sort((a,b)=>a-b)
+  .forEach(t=>selT.innerHTML+=`<option value="${t}">${t} kHz</option>`);
+
+el('legend').innerHTML=[1,2,3,4,5,6,7,8]
+  .filter(p=>DADOS.some(d=>d.periodo===p))
+  .map(p=>`<span><i style="background:${corP(p)}"></i>P${p}</span>`).join('')
+  + (DADOS.some(d=>!d.periodo)?`<span><i style="background:var(--mag)"></i>s/per</span>`:'');
+
+function filtrar(){
+  const ini=isoNum(dIni.value),fim=isoNum(dFim.value),ff=selF.value,fp=selP.value,
+        fs=selS.value,ft=selT.value;
+  const toks=semAcento(inB.value.trim()).split(/\s+/).filter(Boolean);
+  return DADOS.filter(d=>{
+    if(ff&&d.fundeio!==ff)return false;
+    if(fp&&String(d.periodo)!==fp)return false;
+    if(fs&&d.ssd!==fs)return false;
+    if(ft&&String(d.taxa)!==ft)return false;
+    if(ini||fim){
+      if(!d.dia_min)return false;
+      if(ini&&d.dia_max<ini)return false;
+      if(fim&&d.dia_min>fim)return false;
+    }
+    if(toks.length){
+      const hay=feno(d);
+      if(!toks.every(tk=>hay.includes(tk)))return false;
+    }
+    return true;
+  });
+}
+
+function chips(){
+  const box=el('ativos'), it=[];
+  if(dIni.value||dFim.value){
+    const r=(dIni.value&&dFim.value)?`${fmtDia(isoNum(dIni.value))} a ${fmtDia(isoNum(dFim.value))}`
+      :dIni.value?`desde ${fmtDia(isoNum(dIni.value))}`:`ate ${fmtDia(isoNum(dFim.value))}`;
+    it.push([r,'data']);
+  }
+  if(selF.value)it.push([selF.value,'f']);
+  if(selP.value)it.push(['Periodo '+selP.value,'p']);
+  if(selS.value)it.push([selS.value,'s']);
+  if(selT.value)it.push([selT.value+' kHz','t']);
+  if(inB.value.trim())it.push(['"'+inB.value.trim()+'"','b']);
+  if(agrupado)it.push(['Por disco','g']);
+  box.innerHTML = it.length
+    ? `<span class="t">Filtros</span>` + it.map(([r,k])=>
+        `<span class="fchip">${r}<button data-k="${k}" title="Remover" aria-label="Remover filtro ${r}">&times;</button></span>`).join('')
+    : '';
+  box.querySelectorAll('button[data-k]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.dataset.k;
+    if(k==='data'){dIni.value='';dFim.value='';}
+    if(k==='f')selF.value='';
+    if(k==='p')selP.value='';
+    if(k==='s')selS.value='';
+    if(k==='t')selT.value='';
+    if(k==='b')inB.value='';
+    if(k==='g'){agrupado=false;btAgr.classList.remove('on');}
+    render();
+  }));
+}
+
+function resposta(rows){
+  const ini=isoNum(dIni.value),fim=isoNum(dFim.value),fp=selP.value,box=el('answer');
+  if(!ini&&!fim&&!fp){
+    const limpo=!selF.value&&!selS.value&&!selT.value&&!inB.value.trim();
+    box.innerHTML = limpo ? `<div class="dica">
+      <b>Onde esta cada trecho do acervo.</b> Informe um <b>intervalo de datas</b> acima, ou escolha um
+      <b>periodo do servidor</b> (1&ndash;8), e a pagina responde em quais discos aquele trecho esta gravado.<br>
+      Tambem da pra filtrar por fundeio, disco e taxa amostral, ou digitar direto na busca &mdash;
+      por exemplo <kbd>f4 dez 25</kbd> ou <kbd>PAMA12</kbd>.
+    </div>` : '';
+    return;
+  }
+  const rot=(ini&&fim)?`${fmtDia(ini)} a ${fmtDia(fim)}`
+        :ini?`a partir de ${fmtDia(ini)}`
+        :fim?`ate ${fmtDia(fim)}`:`periodo ${fp} do servidor`;
+  if(!rows.length){
+    box.innerHTML=`<div class="answer"><div class="hd">Localizacao</div>
+      <div class="bd"><div class="q">${rot}</div>
+      <div class="nada">Nenhum bloco corresponde aos filtros atuais.</div></div></div>`;
+    return;
+  }
+  const porD={};rows.forEach(r=>porD[r.ssd]=(porD[r.ssd]||0)+r.gb);
+  const ds=Object.entries(porD).sort((a,b)=>b[1]-a[1]);
+  const fus=[...new Set(rows.map(r=>r.fundeio))].sort();
+  const ps=[...new Set(rows.map(r=>r.periodo).filter(Boolean))].sort((a,b)=>a-b);
+  const arq=rows.reduce((s,r)=>s+r.n,0);
+  box.innerHTML=`<div class="answer"><div class="hd">Localizacao</div><div class="bd">
+    <div class="q">${rot} &nbsp;/&nbsp; fundeio ${fus.join(' ')}${ps.length?` &nbsp;/&nbsp; periodo ${ps.join(' ')}`:''}
+      &nbsp;&rarr;&nbsp; <b>${ds.length} disco(s)</b>, ${arq.toLocaleString('pt-BR')} arquivos</div>
+    ${ds.map(([s,gb])=>`<div class="locrow"><b>${s}</b><span>${gb.toFixed(1)} GB</span></div>`).join('')}
+  </div></div>`;
+}
+
+function readout(rows){
+  const gb=rows.reduce((s,d)=>s+d.gb,0), n=rows.reduce((s,d)=>s+d.n,0);
+  const cd=rows.filter(r=>r.dia_min);
+  const a=cd.length?Math.min(...cd.map(r=>r.dia_min)):null;
+  const b=cd.length?Math.max(...cd.map(r=>r.dia_max)):null;
+  el('readout').innerHTML=`
+    <div class="rd"><div class="v">${(gb/1024).toFixed(2)}</div><div class="k">Terabytes</div></div>
+    <div class="rd"><div class="v">${n.toLocaleString('pt-BR')}</div><div class="k">Arquivos</div></div>
+    <div class="rd"><div class="v">${new Set(rows.map(d=>d.ssd)).size}</div><div class="k">Discos</div></div>
+    <div class="rd"><div class="v">${a?fmtDia(a):'--'}</div><div class="k">Primeiro dia</div></div>
+    <div class="rd"><div class="v">${b?fmtDia(b):'--'}</div><div class="k">Ultimo dia</div></div>`;
+}
+
+function regua(rows){
+  const t0=dnum(COBERTURA.min), t1=dnum(COBERTURA.max), span=t1-t0||1;
+  const pos=(d)=>((dnum(d)-t0)/span)*100;
+
+  const y0=+String(COBERTURA.min).slice(0,4), y1=+String(COBERTURA.max).slice(0,4);
+  // rotulo do inicio da cobertura (os dados nao comecam em janeiro)
+  let marks=`<span style="left:0;transform:none">${y0}</span>`;
+  for(let y=y0;y<=y1;y++){
+    for(const m of [1,7]){
+      const d=y*10000+m*100+1;
+      if(d<COBERTURA.min||d>COBERTURA.max)continue;
+      marks+=`<span style="left:${pos(d)}%">${m===1?y:'jul'}</span>`;
+    }
+  }
+  el('axis').innerHTML=marks;
+
+  const chave=agrupado?'ssd':'fundeio';
+  const grupos={};
+  rows.forEach(r=>{ if(r.dia_min) (grupos[r[chave]]=grupos[r[chave]]||[]).push(r); });
+  const nomes=Object.keys(grupos).sort();
+  el('tracks').innerHTML = nomes.length? nomes.map(nome=>{
+    const segs=grupos[nome].map(r=>{
+      const l=pos(r.dia_min), w=Math.max(pos(r.dia_max)-l,0.35);
+      const rot=`${r.fundeio} &middot; ${r.ssd}${r.periodo?' &middot; P'+r.periodo:''}`;
+      const det=`${fmtDia(r.dia_min)} &rarr; ${fmtDia(r.dia_max)}<br>${r.gb.toFixed(1)} GB &middot; ${r.n.toLocaleString('pt-BR')} arq${r.taxa?` &middot; ${r.taxa} kHz`:''}`;
+      const aria=`${r.fundeio} ${r.ssd}${r.periodo?' periodo '+r.periodo:''}, ${fmtDia(r.dia_min)} a ${fmtDia(r.dia_max)}, ${r.gb.toFixed(1)} gigabytes`;
+      return `<div class="seg" style="left:${l}%;width:${w}%;background:${corP(r.periodo)}"
+        role="img" aria-label="${aria}" data-h="${rot}" data-d="${det}"></div>`;
+    }).join('');
+    const dot=agrupado?'':`<u style="background:${corF(nome)}"></u>`;
+    return `<div class="trow"><div class="tlabel">${dot}${nome}</div><div class="track">${segs}</div></div>`;
+  }).join('') : `<div class="vazio">Sem cobertura para exibir.</div>`;
+}
+
+function linha(d){
+  return `<div class="r">
+    <span class="fu"><u style="background:${corF(d.fundeio)}"></u>${d.fundeio}</span>
+    <span class="ds">${d.ssd}</span>
+    <span class="sm">${fmtMes(d.ano_mes)}${d.taxa?` &middot; ${d.taxa}k`:''}</span>
+    <span class="pe">${d.periodo?`<span class="pbox" style="background:${corP(d.periodo)}">P${d.periodo}</span>`:'<span class="sm">&mdash;</span>'}</span>
+    <span class="sm">${d.dia_min?`${fmtDia(d.dia_min)}&ndash;${fmtDia(d.dia_max).slice(0,5)}`:'sem data'}</span>
+    <span class="num">${d.gb.toFixed(1)} GB<br><span class="sm">${d.n.toLocaleString('pt-BR')} arq</span></span>
+  </div>`;
+}
+
+function render(){
+  const rows=filtrar();
+  esconderTip(); chips();
+  resposta(rows); readout(rows); regua(rows);
+  const box=el('rows');
+  if(!rows.length){box.innerHTML='<div class="vazio">Nenhum bloco corresponde aos filtros atuais.</div>';return;}
+  if(agrupado){
+    const g={};rows.forEach(r=>(g[r.ssd]=g[r.ssd]||[]).push(r));
+    box.innerHTML=Object.keys(g).sort().map(s=>{
+      const it=g[s].sort((a,b)=>(a.ano_mes||0)-(b.ano_mes||0)||(b.taxa||0)-(a.taxa||0));
+      const gb=it.reduce((x,d)=>x+d.gb,0);
+      return `<div class="grp"><b>${s}</b> &nbsp;/&nbsp; ${gb.toFixed(1)} GB &nbsp;/&nbsp; ${it.length} bloco(s)</div>`
+        + it.map(linha).join('');
+    }).join('');
+  }else{
+    rows.sort((a,b)=>a.fundeio.localeCompare(b.fundeio)||(a.periodo||0)-(b.periodo||0)
+      ||(a.ano_mes||0)-(b.ano_mes||0)||a.ssd.localeCompare(b.ssd)||(b.taxa||0)-(a.taxa||0));
+    box.innerHTML=rows.map(linha).join('');
+  }
+}
+
+// tooltip da regua: hover no desktop, toque no celular
+const tip=el('tip');
+let segSel=null;
+function mostrarTip(seg,x,y){
+  if(segSel&&segSel!==seg)segSel.classList.remove('sel');
+  segSel=seg; seg.classList.add('sel');
+  tip.innerHTML=`<div class="h">${seg.dataset.h}</div><div class="d">${seg.dataset.d}</div>`;
+  tip.style.display='block';
+  const r=tip.getBoundingClientRect();
+  let L=x+13, T=y+15;
+  if(L+r.width>innerWidth-8)L=Math.max(8,x-r.width-13);
+  if(T+r.height>innerHeight-8)T=Math.max(8,y-r.height-13);
+  tip.style.left=L+'px'; tip.style.top=T+'px';
+}
+function esconderTip(){
+  tip.style.display='none';
+  if(segSel){segSel.classList.remove('sel');segSel=null;}
+}
+el('tracks').addEventListener('mousemove',e=>{
+  const s=e.target.closest('.seg');
+  if(s)mostrarTip(s,e.clientX,e.clientY); else esconderTip();
+});
+el('tracks').addEventListener('mouseleave',esconderTip);
+el('tracks').addEventListener('click',e=>{
+  const s=e.target.closest('.seg');
+  if(!s){esconderTip();return;}
+  if(s===segSel){esconderTip();return;}
+  const r=s.getBoundingClientRect();
+  mostrarTip(s,r.left+r.width/2,r.bottom-r.height);
+});
+document.addEventListener('click',e=>{if(!e.target.closest('#tracks')&&!e.target.closest('#tip'))esconderTip();});
+addEventListener('scroll',esconderTip,{passive:true});
+addEventListener('keydown',e=>{if(e.key==='Escape')esconderTip();});
+
+[dIni,dFim,selF,selP,selS,selT].forEach(e=>e.addEventListener('change',render));
+inB.addEventListener('input',render);
+btAgr.addEventListener('click',()=>{agrupado=!agrupado;btAgr.classList.toggle('on',agrupado);render();});
+el('btLimparData').addEventListener('click',()=>{dIni.value='';dFim.value='';render();});
+el('btAno').addEventListener('click',()=>{
+  const y=dIni.value?dIni.value.slice(0,4):String(COBERTURA.max).slice(0,4);
+  dIni.value=`${y}-01-01`;dFim.value=`${y}-12-31`;render();});
+el('btLimparTudo').addEventListener('click',()=>{
+  dIni.value='';dFim.value='';selF.value='';selP.value='';selS.value='';selT.value='';inB.value='';
+  agrupado=false;btAgr.classList.remove('on');render();});
+render();
+</script>
+</body>
+</html>
